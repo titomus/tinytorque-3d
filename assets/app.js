@@ -84,6 +84,7 @@ let simSpeed = 1;
 let elapsed = 0;
 let timeAccumulator = 0;
 let cameraMode = 'cinema';
+let weatherGrip = 1;
 let cameraOrbit = 0;
 let toastHandle;
 const toast = (message) => {
@@ -305,7 +306,7 @@ function drive(car,dt) {
   const curve=Math.abs(angleDiff(Math.atan2(forward.x,forward.z),Math.atan2(rear.x,rear.z)))/
     (Math.max(1,(look+Math.max(5,Math.floor(look/2)))*distancePerPoint));
   const pressure=1-1.15*(car.tune.pressure-1)**2;
-  const effectiveGrip=Math.max(.35,car.tune.grip*car.chassis.nativeGrip*pressure);
+  const effectiveGrip=Math.max(.35,car.tune.grip*car.chassis.nativeGrip*pressure*weatherGrip);
   const limitingSpeed=Math.sqrt(7.3*effectiveGrip/Math.max(.008,curve));
   const possibleSpeed=car.tune.topSpeed*(1.32-.32*car.tune.gearing)*car.chassis.speedFactor;
   const driverRisk=.70+.23*car.tune.aggression;
@@ -320,7 +321,7 @@ function drive(car,dt) {
     ?clamp(1-Math.abs(steer)*.68-Math.abs(drift)*1.05,.07,1):1;
   const safeThrottle=throttle*driveAid;
   const oldRollOver=p.rollOver;
-  tuneVehicle(p,car.tune,car.chassis,{steer,throttle:safeThrottle,brake},car.offroad,dt);
+  tuneVehicle(p,car.tune,car.chassis,{steer,throttle:safeThrottle,brake},car.offroad,dt,weatherGrip);
   // Resolve genuine lateral crashes and glancing contact, never snap onto a racing line.
   const collision=collideWithGuardrails(p,guardrails,previous,dt);
   if(collision.impacts) {
@@ -573,10 +574,13 @@ document.querySelectorAll('[data-camera]').forEach(button => button.addEventList
 // Graphics settings affect only presentation, never lap physics.
 document.querySelectorAll('[data-weather]').forEach(button=>button.addEventListener('click',()=>{
   const selectedWeather=button.dataset.weather;
+  const nextGrip=selectedWeather==='rain'?.70:1;
+  if(nextGrip!==weatherGrip)cars.forEach(markChangedTune);
+  weatherGrip=nextGrip;
   environment.setWeather(selectedWeather==='rain'?'rain':'sun');
   environment.setNight(selectedWeather==='night');
   document.querySelectorAll('[data-weather]').forEach(el=>el.classList.toggle('active',el===button));
-  toast(selectedWeather==='rain'?'Pluie et piste mouillée.':'Ambiance '+(selectedWeather==='night'?'nocturne':'ensoleillée')+'.');
+  toast(selectedWeather==='rain'?'Pluie : adhérence réduite de 30 %.':'Ambiance '+(selectedWeather==='night'?'nocturne':'ensoleillée')+'.');
 }));
 document.querySelectorAll('[data-quality]').forEach(button=>button.addEventListener('click',()=>{
   const level=button.dataset.quality;

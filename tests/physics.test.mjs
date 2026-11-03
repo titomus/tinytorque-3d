@@ -95,3 +95,16 @@ test('maxing every slider does not erase chassis differences',()=>{
   });
   assert.ok(new Set(distances).size===4,'Four distinct chassis must remain physically distinct');
 });
+
+
+test('wet asphalt reduces braking grip and increases stopping distance',()=>{
+  const dry=createVehicleState(),wet=createVehicleState();
+  dry.vz=25;wet.vz=25;
+  dry.speed=25;wet.speed=25;
+  for(let i=0;i<90;i++){
+    const control={throttle:0,brake:1,steer:0};
+    tuneVehicle(dry,baseline,chassis,control,0,1/60,1);
+    tuneVehicle(wet,baseline,chassis,control,0,1/60,.70);
+  }
+  assert.ok(wet.z>dry.z+1,'Wet braking should need more road than dry braking');
+});

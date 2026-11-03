@@ -31,7 +31,7 @@ export function createVehicleState(x=0,z=0,heading=0) {
 }
 export const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 
-export function tuneVehicle(state, tune, chassis, controls, offroad, dt) {
+export function tuneVehicle(state, tune, chassis, controls, offroad, dt, roadGrip=1) {
   const mass = tune.mass * chassis.massFactor;
   const wb = chassis.wheelbase;
   const baseSpeed = tune.topSpeed * (1.32 - .32*tune.gearing) * chassis.speedFactor;
@@ -49,7 +49,7 @@ export function tuneVehicle(state, tune, chassis, controls, offroad, dt) {
   const grassSusp = .67 + .35*tune.suspension;
   const aeroLoad = speed*speed*.00032*tune.aero;
   const mu = tune.grip * chassis.nativeGrip * pressureFactor *
-    ((1-grassRatio)*tarmacSusp + grassRatio*.32*grassSusp) *
+    ((1-grassRatio)*tarmacSusp*clamp(roadGrip,.45,1.15) + grassRatio*.32*grassSusp) *
     (1 + aeroLoad);
   // Dynamic transfer between axles: acceleration loads the rear, braking loads the front.
   const frontFraction = clamp(chassis.frontWeight - state.lastAx*h/(9.81*wb),.25,.79);

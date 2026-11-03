@@ -8,7 +8,7 @@ TinyTorque REAL is a **separate** edition of [TinyTorque Classic](https://github
 
 - 4 distinctive RC racing cars with curved, beveled bodies, PBR car paint, transparent glazing, wheels, rims, wings, racing numbers and shadows
 - A fully procedural backyard circuit with asphalt texture, gravel runoff, concrete paddocks, start gantry, 3D guardrails, tire stacks, cones, grass blades, rocks and hundreds of trees
-- **Sun / night / rain** presets, real-time rain streaks, puddles, wet-road appearance and track floodlights
+- **Sun / night / rain** presets, real-time rain streaks, puddles, wet-road appearance, track floodlights and **30% reduced wet-road grip**
 - **Cinema / TV / follow / overhead** camera modes
 - Graphics controls **Eco / HD / Ultra**, pixel ratio scaling, reduced vegetation and shadows on Eco
 - Original deterministic four-car physics: FWD/RWD/AWD, tuning, offroad grip, wall collisions, rollover and autonomous drivers
@@ -48,6 +48,6 @@ Keys: **Space** start/pause, **R** reset, **1 to 4** select a car.
 
 This first iteration focuses on a **much more immersive rendering** without breaking proven gameplay. It is procedural art, **not yet photorealism**: high-end externally modeled cars, HDR lighting, contact shadows, modern reflection techniques, enhanced audio, track-specific physics calibration and an automated visual regression run are subsequent milestones.
 
-The car physics still uses a simplified bicycle model rather than four independent wheel suspension constraints. The weather is **visual only** for now, so wet asphalt does not change grip.
+The car physics still uses a simplified bicycle model rather than four independent wheel suspension constraints. Rain reduces asphalt grip by 30% and AI drivers adjust cornering speeds; weather changes mid-lap invalidate the current lap record.
 
 No software re-use license has been chosen yet.
