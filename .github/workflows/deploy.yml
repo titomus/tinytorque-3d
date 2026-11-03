@@ -1,29 +1,29 @@
-name: Publish TinyTorque REAL
+name: Validate and publish TinyTorque REAL
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy_pages:
+        description: "Publier sur Pages (doit être activé dans Settings > Pages)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "tinytorque-real-pages"
+  group: "tinytorque-real-ci"
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  validate:
+    name: Verify JavaScript and physics
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Validate JavaScript
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
         run: |
           node --check assets/app.js
           node --check assets/realism.mjs
@@ -31,8 +31,23 @@ jobs:
           node --check assets/guardrails.mjs
           node --check assets/track.mjs
           node --check assets/records.mjs
-      - name: Run physics, track and records regression tests
+      - name: Run regression tests
         run: node --test tests/*.test.mjs
+
+  deploy:
+    name: Publish GitHub Pages
+    needs: validate
+    if: ${{ !github.event.repository.private || inputs.deploy_pages == true }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static site
