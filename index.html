@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1119">
+  <meta name="description" content="TinyTorque, le laboratoire de voitures RC. Traction, propulsion, pneus et dérapages : réglez vos bolides et observez les pilotes IA.">
+  <title>TinyTorque REAL — Racing Simulation</title>
+  <link rel="stylesheet" href="./assets/style.css?v=0.4.2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d1119'/%3E%3Cpath d='M8 42l8-19h32l8 19H8z' fill='%23f7c75b'/%3E%3Ccircle cx='18' cy='44' r='7' fill='%23fff'/%3E%3Ccircle cx='46' cy='44' r='7' fill='%23fff'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidepanel">
+      <header class="brand">
+        <div class="brand-symbol" aria-hidden="true">TT<span>·</span></div>
+        <div><strong>TINYTORQUE REAL</strong><small>RC ENGINEERING LAB / 001</small></div>
+        <span class="build-tag">ALPHA</span>
+      </header>
+      <div class="side-heading">
+        <div><span class="eyebrow">01 / VOTRE ÉCURIE</span><h1>Le garage</h1></div>
+        <span class="count-tag">4 CHÂSSIS</span>
+      </div>
+      <p class="help-text">Choisissez un châssis. Réglez sa transmission, son moteur et ses pneus. Les excès de puissance ont maintenant un prix.</p>
+      <div id="car-list" class="car-list" aria-label="Choisir une voiture"></div>
+      <div class="tuner-heading"><span class="eyebrow">02 / RÉGLAGES</span><span class="live-dot">14 RÉGLAGES · 3 TRANSMISSIONS</span></div>
+      <div class="selected-head"><div><h2 id="selected-name">Kestrel GT</h2><span id="selected-desc">PROTOTYPE / 01</span></div><span id="selected-color" class="color-dot"></span></div>
+      <div id="tuners" class="tuners"></div>
+      <div class="tune-actions">
+        <button type="button" id="randomize" class="minor-button">↝ Aléatoire</button>
+        <button type="button" id="reset-tune" class="minor-button">↺ D'origine</button>
+      </div>
+      <div class="storage-actions">
+        <button id="export" type="button">Exporter les réglages ↗</button>
+        <button id="import" type="button">Importer un profil ↙</button>
+        <input id="file-input" type="file" accept=".json,application/json" hidden>
+      </div>
+      <footer class="side-footer"><span>TOUT EST SAUVEGARDÉ LOCALEMENT</span><span>V0.1.0</span></footer>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="venue-label"><span class="eyebrow">PISTE D'ESSAI N°001</span><strong>THE BACKYARD • REAL</strong></div>
+        <div class="topbar-right"><span class="online-light"></span><span>SIMULATEUR LOCAL</span><span class="top-separator"></span><span id="fps-display">3D EN DIRECT</span></div>
+      </header>
+      <div class="viewport" id="viewport">
+        <div id="scene" class="scene" role="img" aria-label="Circuit en trois dimensions et quatre voitures pilotées par ordinateur"></div>
+        <div class="viewport-vignette"></div>
+        <div class="track-title"><span class="eyebrow">TINYTORQUE / EXPERIMENT 001</span><strong>Le circuit<br>des inventeurs<span>.</span></strong></div>
+        <div class="session-pill"><span id="session-indicator" class="session-dot"></span><span id="session-state">EN ATTENTE</span></div>
+        <div class="camera-control">
+          <span class="eyebrow">CAMÉRA</span>
+          <div class="camera-buttons">
+            <button data-camera="tv" class="active" type="button">TV</button>
+            <button data-camera="follow" type="button">SUIVI</button>
+            <button data-camera="top" type="button">DESSUS</button>
+          </div>
+        </div>
+        <div class="scene-footnote">BARRIÈRES PHYSIQUES · DÉRAPAGES · PILOTES IA</div>
+      </div>
+      <section class="race-bar" aria-label="Contrôles de course">
+        <div class="race-title"><span class="eyebrow">03 / SIMULATION</span><h2>Le banc d'essai</h2><p>Vous réglez. Ils pilotent.</p></div>
+        <div class="race-controls">
+          <button class="primary-button" id="start-button" type="button"><span id="play-icon">▶</span> <span id="start-label">LANCER LA COURSE</span></button>
+          <button class="square-button" id="reset-race" type="button" aria-label="Réinitialiser la course" title="Recommencer">↺</button>
+          <div class="speed-buttons" aria-label="Vitesse de simulation"><span>VITESSE</span><button type="button" data-speed="1" class="active">1×</button><button type="button" data-speed="3">3×</button><button type="button" data-speed="8">8×</button></div>
+        </div>
+        <div class="race-timer"><span class="eyebrow">CHRONOMÈTRE</span><strong id="timer">00:00.00</strong><small>3 TOURS · 4 BOLIDES</small></div>
+      </section>
+    </main>
+    <aside class="results-panel">
+      <section class="record-panel" aria-labelledby="record-title">
+        <div class="record-top"><span class="eyebrow">04 / RECORD DU TOUR</span><span class="record-local">● LOCAL</span></div>
+        <h3 id="record-title">Record du tour</h3>
+        <div class="record-main"><strong id="record-time" aria-live="polite">--:--.--</strong><span id="record-crown">★</span></div>
+        <p id="record-holder" class="record-holder">Aucun tour chronométré</p>
+        <p id="record-context" class="record-context">Terminez un tour complet pour fixer un premier record.</p>
+        <div id="incoming-challenge" class="incoming-challenge" hidden>
+          <span class="eyebrow">DÉFI REÇU DEPUIS UN LIEN</span>
+          <div><strong id="incoming-time">--:--.--</strong><span id="incoming-from">Un autre constructeur vous défie !</span></div>
+          <small>Temps annoncé par le joueur, non vérifié par un serveur.</small>
+        </div>
+        <div class="record-divider"></div>
+        <div class="record-meta"><span>MEILLEUR TOUR DE LA SESSION</span><strong id="record-session">--:--.--</strong></div>
+        <div class="record-meta"><span>TOURS VALIDÉS SUR CE NAVIGATEUR</span><strong id="record-count">0</strong></div>
+        <div class="record-cars" id="record-cars" aria-label="Meilleur temps de chaque voiture"></div>
+        <label for="driver-name" class="record-label">NOM DU CONSTRUCTEUR</label>
+        <input type="text" maxlength="24" id="driver-name" autocomplete="nickname" placeholder="Votre pseudo" aria-describedby="record-storage">
+        <label for="x-handle" class="record-label record-label-x">COMPTE X <span>(FACULTATIF)</span></label>
+        <input type="text" maxlength="16" id="x-handle" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="@votre_identifiant" aria-describedby="x-help">
+        <p id="x-help" class="x-help">Votre @identifiant apparaîtra comme une mention cliquable sur X. Jamais deviné à partir de votre pseudo.</p>
+        <button class="share-record" type="button" id="share-record" disabled><span>↗</span> Copier mon défi pour X</button>
+        <p id="record-storage" class="record-storage">Records et réglages privés, conservés uniquement dans ce navigateur. Aucun classement mondial pour l'instant.</p>
+      </section>
+      <div class="results-top"><span class="eyebrow">05 / LA COMPÉTITION</span><h2>Classement<span class="blink-caret">_</span></h2><p>Le meilleur réglage gagne. Pas le plus joli.</p></div>
+      <div class="leaderboard-top"><span>POS / VOITURE</span><span>TOUR / VITESSE</span></div>
+      <div id="leaderboard" class="leaderboard" aria-live="polite"></div>
+      <div class="telemetry"><div class="telemetry-heading"><span class="eyebrow">TÉLÉMÉTRIE</span><span class="signal">◉ LIVE</span></div><div class="telemetry-speed"><strong id="tele-speed">0</strong><span>km/h<br><small>SIMULÉS</small></span></div><div class="meter-track"><div id="speed-meter"></div></div><div class="tele-grid"><div><span>TOURS</span><strong id="tele-lap">0 / 3</strong></div><div><span>HORS PISTE</span><strong id="tele-offset">0.0 m</strong></div><div><span>GLISSEMENT</span><strong id="tele-slip">0°</strong></div><div><span>TRANSMISSION</span><strong id="tele-drive">4 roues motrices</strong></div></div><div class="tele-warnings" id="tele-warnings">0 glissades · 0 tonneau · 0 remise en piste</div><div class="tele-note" id="tele-note">Sélectionnez un véhicule dans le garage.</div></div>
+      <div class="lab-note"><div class="note-icon">✳</div><strong>LE PRINCIPE</strong><p>Les protections en bord de piste ralentissent les voitures qui s'y écrasent. Une configuration instable peut déraper, heurter un rail ou rester coincée sur l'herbe.</p></div>
+      <div class="right-footer">BUILT FOR TINKERERS, NOT DRIVERS.</div>
+    </aside>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript>Activez JavaScript pour utiliser le simulateur TinyTorque.</noscript>
+  <script type="module" src="./assets/app.js?v=0.4.2"></script>
+</body>
+</html>
