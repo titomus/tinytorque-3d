@@ -26,6 +26,7 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check assets/app.js
+          node --check assets/realism.mjs
           node --check assets/physics.mjs
           node --check assets/guardrails.mjs
           node --check assets/track.mjs

@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d1119">
-  <meta name="description" content="TinyTorque, le laboratoire de voitures RC. Traction, propulsion, pneus et dérapages : réglez vos bolides et observez les pilotes IA.">
+  <meta name="theme-color" content="#0c171d">
+  <meta name="description" content="TinyTorque REAL : quatre voitures RC dans un circuit 3D détaillé. Piste mouillée, météo, collisions, réglages et défis de records.">
   <title>TinyTorque REAL — Racing Simulation</title>
-  <link rel="stylesheet" href="./assets/style.css?v=0.4.2">
+  <link rel="stylesheet" href="./assets/style.css?v=real-0.1.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d1119'/%3E%3Cpath d='M8 42l8-19h32l8 19H8z' fill='%23f7c75b'/%3E%3Ccircle cx='18' cy='44' r='7' fill='%23fff'/%3E%3Ccircle cx='46' cy='44' r='7' fill='%23fff'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -14,8 +14,8 @@
     <aside class="sidepanel">
       <header class="brand">
         <div class="brand-symbol" aria-hidden="true">TT<span>·</span></div>
-        <div><strong>TINYTORQUE REAL</strong><small>RC ENGINEERING LAB / 001</small></div>
-        <span class="build-tag">ALPHA</span>
+        <div><strong>TINYTORQUE REAL</strong><small>RC RACING SIMULATOR / 3D</small></div>
+        <span class="build-tag">3D BETA</span>
       </header>
       <div class="side-heading">
         <div><span class="eyebrow">01 / VOTRE ÉCURIE</span><h1>Le garage</h1></div>
@@ -35,27 +35,31 @@
         <button id="import" type="button">Importer un profil ↙</button>
         <input id="file-input" type="file" accept=".json,application/json" hidden>
       </div>
-      <footer class="side-footer"><span>TOUT EST SAUVEGARDÉ LOCALEMENT</span><span>V0.1.0</span></footer>
+      <footer class="side-footer"><span>TOUT EST SAUVEGARDÉ LOCALEMENT</span><span>REAL v0.1.0</span></footer>
     </aside>
     <main class="main">
       <header class="topbar">
-        <div class="venue-label"><span class="eyebrow">PISTE D'ESSAI N°001</span><strong>THE BACKYARD • REAL</strong></div>
-        <div class="topbar-right"><span class="online-light"></span><span>SIMULATEUR LOCAL</span><span class="top-separator"></span><span id="fps-display">3D EN DIRECT</span></div>
+        <div class="venue-label"><span class="eyebrow">PISTE D'ESSAI N°001</span><strong>BACKYARD RACEWAY · REAL</strong></div>
+        <div class="topbar-right"><span class="online-light"></span><span>SIMULATEUR LOCAL</span><span class="top-separator"></span><span id="fps-display">3D PBR EN DIRECT</span></div>
       </header>
       <div class="viewport" id="viewport">
         <div id="scene" class="scene" role="img" aria-label="Circuit en trois dimensions et quatre voitures pilotées par ordinateur"></div>
         <div class="viewport-vignette"></div>
-        <div class="track-title"><span class="eyebrow">TINYTORQUE / EXPERIMENT 001</span><strong>Le circuit<br>des inventeurs<span>.</span></strong></div>
+        <div class="track-title"><span class="eyebrow">TINYTORQUE REAL / PHOTOGRAPHIC RC RACING</span><strong>La course<br>grandeur RC<span>.</span></strong></div>
         <div class="session-pill"><span id="session-indicator" class="session-dot"></span><span id="session-state">EN ATTENTE</span></div>
         <div class="camera-control">
           <span class="eyebrow">CAMÉRA</span>
           <div class="camera-buttons">
-            <button data-camera="tv" class="active" type="button">TV</button>
+            <button data-camera="cinema" class="active" type="button">CINÉMA</button><button data-camera="tv" type="button">TV</button>
             <button data-camera="follow" type="button">SUIVI</button>
             <button data-camera="top" type="button">DESSUS</button>
           </div>
         </div>
-        <div class="scene-footnote">BARRIÈRES PHYSIQUES · DÉRAPAGES · PILOTES IA</div>
+        <div class="visual-controls" aria-label="Ambiance et qualité graphique">
+          <div class="visual-switch"><span>AMBIANCE</span><button class="active" data-weather="day" type="button">SOLEIL</button><button data-weather="night" type="button">NUIT</button><button data-weather="rain" type="button">PLUIE</button></div>
+          <div class="visual-switch"><span>GRAPHISMES</span><button data-quality="low" type="button">ÉCO</button><button class="active" data-quality="high" type="button">HD</button><button data-quality="ultra" type="button">ULTRA</button></div>
+        </div>
+        <div class="scene-footnote">PBR · OMBRES · VÉGÉTATION · MÉTÉO DYNAMIQUE</div>
       </div>
       <section class="race-bar" aria-label="Contrôles de course">
         <div class="race-title"><span class="eyebrow">03 / SIMULATION</span><h2>Le banc d'essai</h2><p>Vous réglez. Ils pilotent.</p></div>
@@ -101,6 +105,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript>Activez JavaScript pour utiliser le simulateur TinyTorque.</noscript>
-  <script type="module" src="./assets/app.js?v=0.4.2"></script>
+  <script type="module" src="./assets/app.js?v=real-0.1.0"></script>
 </body>
 </html>

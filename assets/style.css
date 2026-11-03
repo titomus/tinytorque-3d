@@ -147,3 +147,45 @@
   border-radius:4px;color:#f1d37f;padding:10px 11px;font:600 12px 'DM Mono',monospace}
 #x-handle::placeholder{color:#788780;font-weight:400}
 .x-help{margin:6px 0 2px;color:#9faeaa;font-size:9px;line-height:1.55}
+
+
+/* TinyTorque REAL / immersive layout */
+:root{--bg:#0a1218;--panel:#101d25;--panel2:#172731;--line:#273944;--yellow:#f1c766;--green:#69dcb2}
+.brand strong em{font-style:normal;color:#e9bd62}
+.brand{border-bottom-color:#33434a}
+.brand-symbol{box-shadow:0 0 25px #ffce5130}
+.build-tag{background:#3d2d20;border-color:#846c38;color:#ffdc90}
+.sidepanel,.results-panel{background:linear-gradient(155deg,#11222b,#0b141c 80%)}
+.topbar{background:#122029}
+.viewport{background:#516d71;isolation:isolate}
+.viewport-vignette{background:linear-gradient(180deg,rgba(4,15,22,.48),transparent 28%,transparent 58%,rgba(4,12,20,.65))}
+.track-title strong{font-size:clamp(33px,3.8vw,58px);letter-spacing:-1.2px}
+.track-title .eyebrow{color:#e7d7ac}
+.camera-control{bottom:18px;left:18px;gap:8px}
+.camera-buttons button{font-size:9px;padding:10px 11px}
+.camera-buttons{border-color:#ffffff45}
+.visual-controls{position:absolute;right:13px;bottom:37px;z-index:3;display:flex;flex-direction:column;align-items:end;gap:7px}
+.visual-switch{display:flex;align-items:center;gap:2px;padding:4px;background:#091822dc;border:1px solid #ffffff37;border-radius:5px;backdrop-filter:blur(10px)}
+.visual-switch span{padding:0 8px;color:#c0d2d7;font:600 9px 'DM Mono',monospace;letter-spacing:.3px}
+.visual-switch button{padding:8px 9px;color:#d0dde0;background:transparent;border:0;border-radius:3px;font:600 9px 'DM Mono',monospace}
+.visual-switch button:hover{background:#ffffff1c}
+.visual-switch button.active{color:#132029;background:#f4d184}
+.scene-footnote{bottom:8px;right:15px;font-size:8px}
+.race-bar{background:#101e29}
+.primary-button{box-shadow:0 4px 24px #f1c76640}
+.record-panel{background:linear-gradient(135deg,#3a3325,#1a292d 62%,#142027)}
+.telemetry{background:linear-gradient(135deg,#20333d,#15212a)}
+@media(max-width:1250px){
+  .visual-switch span{display:none}
+  .visual-controls{bottom:76px;right:12px}
+}
+@media(max-width:690px){
+  .track-title strong{font-size:32px}
+  .visual-controls{bottom:64px;right:9px;gap:5px}
+  .visual-switch{padding:2px}
+  .visual-switch button{font-size:8px;padding:6px}
+  .camera-control{bottom:12px;left:8px}
+  .camera-buttons button{font-size:8px;padding:8px 6px}
+  .scene-footnote{display:none}
+  .session-pill{max-width:145px}
+}

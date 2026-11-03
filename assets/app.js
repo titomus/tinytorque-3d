@@ -1,4 +1,5 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js';
+import {createRealEnvironment,createRealCar} from './realism.mjs';
 import { DRIVE_MODES, TUNE_FIELDS, createVehicleState, tuneVehicle } from './physics.mjs';
 import { createGuardrailTrack, collideWithGuardrails, smoothClosedTrack, WALL_HEIGHT } from './guardrails.mjs';
 import { TRACK_CONTROL_POINTS } from './track.mjs';
@@ -82,7 +83,7 @@ let mode = 'idle';
 let simSpeed = 1;
 let elapsed = 0;
 let timeAccumulator = 0;
-let cameraMode = 'tv';
+let cameraMode = 'cinema';
 let cameraOrbit = 0;
 let toastHandle;
 const toast = (message) => {
@@ -106,10 +107,6 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.25;
 viewport.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xe2fbff, 0x52634f, 2.15));
-const sun = new THREE.DirectionalLight(0xffefd3, 2.1);
-sun.position.set(-65, 110, 30);
-scene.add(sun);
 
 const path = new THREE.CatmullRomCurve3(
   TRACK_CONTROL_POINTS.map(([x,z]) => new THREE.Vector3(x,0,z)), true, 'catmullrom', 0.34
@@ -140,209 +137,9 @@ function nearestIndex(position, fromIndex, range = 17) {
   }
   return best;
 }
-function mat(color, roughness = 0.9) { return new THREE.MeshStandardMaterial({color,roughness}); }
-function box(w,h,d,color,x,y,z,group = scene) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(color));
-  mesh.position.set(x,y,z);
-  group.add(mesh);
-  return mesh;
-}
-function buildWorld() {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(700,700), mat('#789478'));
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.12;
-  scene.add(ground);
-  const stripPositions = [], indices = [];
-  for (let i = 0; i <= POINT_COUNT; i++) {
-    const at = i % POINT_COUNT, point = track[at], t = tangents[at];
-    for (const side of [1,-1]) {
-      stripPositions.push(point.x + t.z * side * ROAD_WIDTH/2, 0.03, point.z - t.x * side * ROAD_WIDTH/2);
-    }
-    if (i < POINT_COUNT) {
-      const j = i*2;
-      indices.push(j,j+1,j+2, j+1,j+3,j+2);
-    }
-  }
-  const roadGeometry = new THREE.BufferGeometry();
-  roadGeometry.setAttribute('position', new THREE.Float32BufferAttribute(stripPositions,3));
-  roadGeometry.setIndex(indices);
-  roadGeometry.computeVertexNormals();
-  const asphalt = new THREE.Mesh(roadGeometry,new THREE.MeshStandardMaterial({color:'#444c53',roughness:1,side:THREE.DoubleSide}));
-  scene.add(asphalt);
-  const curbGeo = new THREE.BoxGeometry(1.05,0.14,2.6);
-  const curbMaterials = [mat('#efeee1'),mat('#d45c52')];
-  for (let i = 0; i < POINT_COUNT; i += 7) {
-    const tangent = tangents[i], yaw = Math.atan2(tangent.x,tangent.z);
-    for (const side of [-1,1]) {
-      const center = pointWithOffset(i,side*(ROAD_WIDTH/2 + 0.17));
-      const curb = new THREE.Mesh(curbGeo,curbMaterials[(Math.floor(i/7))%2]);
-      curb.position.set(center.x,0.09,center.z);
-      curb.rotation.y = yaw;
-      scene.add(curb);
-    }
-  }
-  // Twin continuous crash barriers. Their vertices are shared with the collision model.
-  const guardMeshMaterial = new THREE.MeshStandardMaterial({
-    color:'#a5b3bc',metalness:.52,roughness:.43,side:THREE.DoubleSide
-  });
-  const stripeMaterial = new THREE.MeshStandardMaterial({
-    vertexColors:true,metalness:.18,roughness:.61,side:THREE.DoubleSide
-  });
-  function railRibbon(points,low,high,material,striped=false) {
-    const positions=[],indices=[],colors=[];
-    const colorA=new THREE.Color('#f6f0da'),colorB=new THREE.Color('#e35b57');
-    for(let i=0;i<POINT_COUNT;i++) {
-      const a=points[i],b=points[(i+1)%POINT_COUNT],j=i*4;
-      positions.push(a.x,low,a.z,a.x,high,a.z,b.x,low,b.z,b.x,high,b.z);
-      indices.push(j,j+2,j+1,j+1,j+2,j+3);
-      if(striped) {
-        const color=(Math.floor(i/5)%2) ? colorA : colorB;
-        for(let k=0;k<4;k++)colors.push(color.r,color.g,color.b);
-      }
-    }
-    const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-    geometry.setIndex(indices);
-    if(striped)geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-    geometry.computeVertexNormals();
-    scene.add(new THREE.Mesh(geometry,material));
-  }
-  for(const side of guardrails.sides) {
-    railRibbon(side.points,.16,WALL_HEIGHT,guardMeshMaterial);
-    railRibbon(side.points,1.18,WALL_HEIGHT+.04,stripeMaterial,true);
-  }
-  // Lightweight instanced support posts keep the barrier readable from a distance.
-  const postEvery=10;
-  const postCount=Math.ceil(POINT_COUNT/postEvery)*guardrails.sides.length;
-  const posts=new THREE.InstancedMesh(
-    new THREE.BoxGeometry(.38,WALL_HEIGHT+.55,.38),mat('#536470',.56),postCount
-  );
-  const postMatrix=new THREE.Matrix4();
-  let postIndex=0;
-  for(const side of guardrails.sides)for(let i=0;i<POINT_COUNT;i+=postEvery) {
-    const p=side.points[i];
-    postMatrix.makeTranslation(p.x,(WALL_HEIGHT+.55)/2,p.z);
-    posts.setMatrixAt(postIndex++,postMatrix);
-  }
-  posts.instanceMatrix.needsUpdate=true;
-  scene.add(posts);
-  const paintMaterial = mat('#d9ddd6');
-  for (let i = 15; i < POINT_COUNT; i += 13) {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.035,3.5),paintMaterial);
-    const p = track[i], t = tangents[i];
-    line.position.set(p.x,0.065,p.z);
-    line.rotation.y = Math.atan2(t.x,t.z);
-    scene.add(line);
-  }
-  const first = track[0], firstTangent = tangents[0];
-  const startGroup = new THREE.Group();
-  startGroup.position.set(first.x,0.08,first.z);
-  startGroup.rotation.y = Math.atan2(firstTangent.x,firstTangent.z);
-  for (let i = 0; i < 10; i++) {
-    const tile = box(ROAD_WIDTH/10,0.035,1.65,i%2 ? '#292d35' : '#f5f2e6',-ROAD_WIDTH/2+(i+.5)*ROAD_WIDTH/10,0,0,startGroup);
-    tile.material.roughness = 1;
-  }
-  scene.add(startGroup);
-  // Start gate
-  for (const s of [-1,1]) {
-    const p = pointWithOffset(0,s*8);
-    box(0.6,7,0.6,'#26333c',p.x,3.5,p.z);
-  }
-  const gate = box(17,1,1.1,'#202e39',first.x,7.15,first.z);
-  gate.rotation.y = Math.atan2(firstTangent.x,firstTangent.z);
-  // Trees and low buildings provide depth, without blocking the course.
-  let seed = 1871;
-  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-  const foliage = [mat('#456f5e'),mat('#527a62'),mat('#66866b'),mat('#355f53')];
-  const treeTrunk = mat('#5c5548');
-  const treeTop = new THREE.ConeGeometry(3.1,8,7);
-  const trunkGeo = new THREE.CylinderGeometry(0.55,0.8,3,6);
-  let trees = 0;
-  for (let tries = 0; tries < 330 && trees < 112; tries++) {
-    const x = (rand()-.5)*295, z = (rand()-.5)*290;
-    let near = Infinity;
-    for (let i = 0; i < POINT_COUNT; i += 8) {
-      const p = track[i];
-      near = Math.min(near,(p.x-x)**2+(p.z-z)**2);
-    }
-    if (near < 18*18 || (Math.abs(x)<12 && Math.abs(z)<16)) continue;
-    const h = 0.75 + rand()*0.7;
-    const trunk = new THREE.Mesh(trunkGeo,treeTrunk);
-    trunk.position.set(x,1.25*h,z);
-    trunk.scale.set(h,h,h);
-    scene.add(trunk);
-    const top = new THREE.Mesh(treeTop,foliage[Math.floor(rand()*foliage.length)]);
-    top.position.set(x,6.2*h,z);
-    top.scale.set(h,h,h);
-    scene.add(top);
-    trees++;
-  }
-  const buildings = [
-    {x:-119,z:-77,w:30,d:19,h:15,c:'#aeb8ad'},
-    {x:108,z:-69,w:23,d:26,h:12,c:'#b7b2a0'},
-    {x:116,z:72,w:34,d:22,h:11,c:'#b5c0ba'},
-    {x:-101,z:85,w:25,d:27,h:13,c:'#9caeac'}
-  ];
-  buildings.forEach(b => {
-    box(b.w,b.h,b.d,b.c,b.x,b.h/2,b.z);
-    const roof = box(b.w+2,1,b.d+2,'#6a7575',b.x,b.h+.5,b.z);
-    roof.rotation.z = .035;
-  });
-  // Test-area decorative cones, safely off the asphalt.
-  const coneGeo = new THREE.ConeGeometry(.75,2,8);
-  const coneMat = mat('#e9a04d');
-  for (let i = 0; i < 26; i++) {
-    const p = pointWithOffset((i*17)%POINT_COUNT, (i%2?1:-1)*11);
-    const cone = new THREE.Mesh(coneGeo,coneMat);
-    cone.position.set(p.x,1,p.z);
-    scene.add(cone);
-  }
-}
-
-function buildCar(car) {
-  const root = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({color:car.color,metalness:.32,roughness:.35});
-  const dark = new THREE.MeshStandardMaterial({color:'#182330',metalness:.16,roughness:.42});
-  const glass = new THREE.MeshStandardMaterial({color:'#83bac7',metalness:.35,roughness:.18});
-  const rubber = mat('#1b2329');
-  const silver = mat('#c7d8da',.4);
-  function part(w,h,d,x,y,z,material) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
-    m.position.set(x,y,z);
-    root.add(m);
-    return m;
-  }
-  part(3.45,.72,5.4,0,.81,0,bodyMat);
-  part(3.05,.26,2.0,0,1.14,1.63,bodyMat);
-  part(2.6,.72,2.52,0,1.44,-.48,glass);
-  part(2.35,.22,2.15,0,1.86,-.51,bodyMat);
-  part(3.68,.18,.45,0,.56,2.72,dark);
-  part(3.54,.18,.46,0,.57,-2.69,dark);
-  part(3.65,.19,.6,0,1.74,-2.6,dark);
-  part(.22,.55,.3,-1.22,1.34,-2.45,dark);
-  part(.22,.55,.3,1.22,1.34,-2.45,dark);
-  for (const x of [-1.2,1.2]) {
-    part(.64,.18,.08,x,.88,2.75,silver);
-    part(.58,.17,.09,x,.9,-2.75,mat('#e65859'));
-    for (const z of [-1.8,1.8]) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.78,.78,.52,16),rubber);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(x*1.49,.73,z);
-      root.add(wheel);
-      car.wheelParts.push(wheel);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(.37,.37,.54,12),silver);
-      hub.rotation.z = Math.PI / 2;
-      hub.position.copy(wheel.position);
-      root.add(hub);
-      car.wheelParts.push(hub);
-    }
-  }
-  root.scale.setScalar(.82);
-  scene.add(root);
-  car.visual = root;
-}
-buildWorld();
-cars.forEach(buildCar);
+// Detailed physically based visuals are isolated from the deterministic racing engine.
+const environment=createRealEnvironment(THREE,scene,renderer,track,tangents,guardrails,ROAD_WIDTH,POINT_COUNT);
+cars.forEach(car=>createRealCar(THREE,scene,car));
 
 // Small reusable particle pool for grass dust and tire smoke.
 const dustGeo = new THREE.SphereGeometry(.67,6,4);
@@ -554,6 +351,7 @@ function drive(car,dt) {
   else checkGates(car,previous,index);
   car.visual.position.set(car.position.x,.09+Math.sin(elapsed*12+car.id)*.018,car.position.z);
   car.visual.rotation.set(0,car.heading,clamp(p.roll*.09,-.22,.22));
+  if(car.steerWheels)for(const wheel of car.steerWheels)wheel.rotation.y=p.steerAngle*.8;
   // Slipping wheels continue rotating after the body's heading diverges from travel direction.
   for(const wheel of car.wheelParts)wheel.rotation.x+=p.speed*dt*.45;
 }
@@ -772,6 +570,26 @@ document.querySelectorAll('[data-camera]').forEach(button => button.addEventList
   cameraMode = button.dataset.camera;
   document.querySelectorAll('[data-camera]').forEach(el=>el.classList.toggle('active',el===button));
 }));
+// Graphics settings affect only presentation, never lap physics.
+document.querySelectorAll('[data-weather]').forEach(button=>button.addEventListener('click',()=>{
+  const selectedWeather=button.dataset.weather;
+  environment.setWeather(selectedWeather==='rain'?'rain':'sun');
+  environment.setNight(selectedWeather==='night');
+  document.querySelectorAll('[data-weather]').forEach(el=>el.classList.toggle('active',el===button));
+  toast(selectedWeather==='rain'?'Pluie et piste mouillée.':'Ambiance '+(selectedWeather==='night'?'nocturne':'ensoleillée')+'.');
+}));
+document.querySelectorAll('[data-quality]').forEach(button=>button.addEventListener('click',()=>{
+  const level=button.dataset.quality;
+  environment.setQuality(level);resize();
+  document.querySelectorAll('[data-quality]').forEach(el=>el.classList.toggle('active',el===button));
+  try{localStorage.setItem('tinytorque-real-graphics-v1',level);}catch(_){}
+  toast('Qualité graphique : '+level+'.');
+}));
+const defaultQuality=(()=>{try{return localStorage.getItem('tinytorque-real-graphics-v1')||((window.innerWidth<800)?'low':'high');}catch(_){return 'high';}})();
+if(['low','high','ultra'].includes(defaultQuality)){
+  environment.setQuality(defaultQuality);
+  document.querySelectorAll('[data-quality]').forEach(el=>el.classList.toggle('active',el.dataset.quality===defaultQuality));
+}
 $('driver-name').value=driverName==='Anonyme'?'':driverName;
 $('driver-name').addEventListener('change',e=>{
   driverName=sanitizeDriver(e.target.value);
@@ -848,25 +666,34 @@ document.addEventListener('keydown', e => {
   if (['1','2','3','4'].includes(e.key)) selectCar(Number(e.key)-1);
 });
 
-function updateCamera(dt) {
-  const selectedCar = cars[selected];
-  const forward = new THREE.Vector3(Math.sin(selectedCar.heading),0,Math.cos(selectedCar.heading));
-  const cameraPosition = new THREE.Vector3();
-  const target = new THREE.Vector3();
-  cameraOrbit += dt*.06;
-  if (cameraMode==='follow') {
-    cameraPosition.copy(selectedCar.position).addScaledVector(forward,-20).add(new THREE.Vector3(0,11,0));
-    target.copy(selectedCar.position).addScaledVector(forward,12).add(new THREE.Vector3(0,1.4,0));
-  } else if (cameraMode==='top') {
-    cameraPosition.set(0,185,.001);
-    target.set(0,0,0);
+function updateCamera(dt){
+  const car=cars[selected];
+  const f=new THREE.Vector3(Math.sin(car.heading),0,Math.cos(car.heading));
+  const side=new THREE.Vector3(f.z,0,-f.x);
+  const desired=new THREE.Vector3(),target=new THREE.Vector3();
+  cameraOrbit+=dt*.045;
+  if(cameraMode==='cinema') {
+    desired.copy(car.position).addScaledVector(f,-10).addScaledVector(side,2.3).add(new THREE.Vector3(0,4.4,0));
+    target.copy(car.position).addScaledVector(f,11).add(new THREE.Vector3(0,1.6,0));
+    camera.fov=57;
+  } else if(cameraMode==='follow') {
+    desired.copy(car.position).addScaledVector(f,-22).add(new THREE.Vector3(0,12,0));
+    target.copy(car.position).addScaledVector(f,7).add(new THREE.Vector3(0,1.2,0));
+    camera.fov=48;
+  } else if(cameraMode==='top') {
+    desired.copy(car.position).add(new THREE.Vector3(0,70,.001));
+    target.copy(car.position);
+    camera.fov=52;
   } else {
-    cameraPosition.set(Math.sin(.68+cameraOrbit)*136,97,Math.cos(.68+cameraOrbit)*135);
-    target.set(0,0,2);
+    const sidePoint=pointWithOffset(car.index+26,19);
+    desired.copy(sidePoint).add(new THREE.Vector3(0,5.8,0));
+    target.copy(car.position).add(new THREE.Vector3(0,.95,0));
+    camera.fov=43;
   }
-  const blend = 1 - Math.exp(-dt*(cameraMode==='follow'?4:1.9));
-  camera.position.lerp(cameraPosition,blend);
-  cameraTarget.lerp(target,blend);
+  camera.updateProjectionMatrix();
+  const smoothing=1-Math.exp(-dt*(cameraMode==='cinema'?4.2:cameraMode==='tv'?3.4:2.4));
+  camera.position.lerp(desired,smoothing);
+  cameraTarget.lerp(target,smoothing);
   camera.lookAt(cameraTarget);
 }
 function resize() {
@@ -896,10 +723,11 @@ function frame() {
     if (steps===15) timeAccumulator=Math.min(timeAccumulator,STEP*2);
   }
   updateCamera(realDt);
+  environment.update(realDt,camera);
   renderer.render(scene,camera);
   fpsTime += realDt; frames++;
   if (fpsTime>=1) {
-    $('fps-display').textContent = Math.round(frames/fpsTime) + ' FPS · WEBGL';
+    $('fps-display').textContent = Math.round(frames/fpsTime) + ' FPS · PBR';
     fpsTime=0;frames=0;
   }
   lastUiUpdate+=realDt;
